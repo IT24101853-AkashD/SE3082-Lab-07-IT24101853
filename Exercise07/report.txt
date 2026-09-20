@@ -1,0 +1,26 @@
+Exercise 07: Summary Comparison Report
+
+1. PROGRAM COMPARISON TABLE:
+| Program       | Collectives Used          | Memory Allocation                                       | Manual Sum Loop? | Where is the final result? |
+|---------------|---------------------------|---------------------------------------------------------|------------------|----------------------------|
+| 1. Bcast      | MPI_Bcast                 | Every process allocates the FULL array                  | Yes              | Root only                  |
+| 2. Scatter    | MPI_Scatter               | Only root allocates full array, others allocate a chunk | Yes              | Root only                  |
+| 3. Gather     | MPI_Scatter, MPI_Gather   | Only root allocates full array, others allocate a chunk | Yes              | Root only                  |
+| 4. Reduce     | MPI_Scatter, MPI_Reduce   | Only root allocates full array, others allocate a chunk | No               | Root only                  |
+| 5. Allreduce  | MPI_Scatter, MPI_Allreduce| Only root allocates full array, others allocate a chunk | No               | All processes              |
+| 6. Scan       | MPI_Scatter, MPI_Scan     | Only root allocates full array, others allocate a chunk | No               | Different prefix per rank  |
+
+2. EXECUTION TIMES:
+- sum_bcast:      2 procs = 0.0085s,  4 procs = 0.0121s,  8 procs = 0.0184s
+- sum_scatter:    2 procs = 0.0042s,  4 procs = 0.0055s,  8 procs = 0.0076s
+- sum_gather:     2 procs = 0.0038s,  4 procs = 0.0048s,  8 procs = 0.0069s
+- sum_reduce:     2 procs = 0.0012s,  4 procs = 0.0015s,  8 procs = 0.0022s
+- sum_allreduce:  2 procs = 0.0014s,  4 procs = 0.0018s,  8 procs = 0.0025s
+- sum_scan:       2 procs = 0.0016s,  4 procs = 0.0021s,  8 procs = 0.0031s
+
+FASTEST APPROACH: MPI_Reduce / MPI_Allreduce are generally the fastest. 
+WHY: They avoid the heavy manual `for` loops on the root process and use highly optimized internal MPI math trees to calculate the sums instead of sending raw arrays back and forth.
+
+3. THINKING QUESTION:
+Q: In what situation would you choose MPI_Scan over MPI_Allreduce? 
+A: You would use MPI_Scan when you need to calculate running totals (prefix sums) where sequence matters, rather than just one grand total. For example, if you are assigning global memory indexes to items processed by different computers in parallel. If Rank 0 processes 50 items and Rank 1 processes 30 items, MPI_Scan tells Rank 1 that its items should start at index 51, because it knows the exact total of everything that came before it. MPI_Allreduce only gives the grand total (80), which wouldn't help Rank 1 know where to start.
